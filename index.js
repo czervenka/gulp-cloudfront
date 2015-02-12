@@ -18,25 +18,28 @@ module.exports = function(options) {
         }
 
         // Update the default root object once we've found the index.html file
-        var filename = file.path.substr(options.dirRoot.length);
-        if (filename.match(options.patternIndex)) {
+        if (file.path) {
+            var filename = file.path.substr(options.dirRoot.length);
+            if (filename.match(options.patternIndex)) {   
 
-            gutil.log('gulp-cloudfront:', 'Identified index [', filename, ']');
+                gutil.log('gulp-cloudfront:', 'Identified index [', filename, ']');
 
-            // Trim the '.gz' if gzipped
-            if (filename.substr(filename.length - 3) === '.gz') {
-                filename = filename.substr(0, filename.length - 3);
+                // Trim the '.gz' if gzipped
+                if (filename.substr(filename.length - 3) === '.gz') {
+                    filename = filename.substr(0, filename.length - 3);
+                }
+
+                tool.updateDefaultRootObject(filename)
+                    .then(function() {
+                        return callback(null, file);
+                    }, function(err) {
+                        gutil.log(new gutil.PluginError('gulp-cloudfront', err));
+                        callback(null, file);
+
+                    });
+            } else {
+                return callback(null, file);
             }
-
-            tool.updateDefaultRootObject(filename)
-                .then(function() {
-                    return callback(null, file);
-                }, function(err) {
-                    gutil.log(new gutil.PluginError('gulp-cloudfront', err));
-                    callback(null, file);
-
-                });
-
         } else {
             return callback(null, file);
         }
