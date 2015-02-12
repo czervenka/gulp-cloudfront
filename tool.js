@@ -32,7 +32,7 @@ module.exports = function(options) {
                 }
 
                 // Causing problems on a default cloudfront setup, why is this needed?
-                if (data.DistributionConfig.Origins.Items instanceof Array && data.DistributionConfig.Origins.Items[0].S3OriginConfig.OriginAccessIdentity === null) {
+                if (data.DistributionConfig.Origins.Items instanceof Array && data.DistributionConfig.Origins.Items[0].S3OriginConfig && data.DistributionConfig.Origins.Items[0].S3OriginConfig.OriginAccessIdentity === null) {
                     data.DistributionConfig.Origins.Items[0].S3OriginConfig.OriginAccessIdentity = '';
                 }
 
