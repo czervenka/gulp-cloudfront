@@ -6,12 +6,16 @@ var AWS = require('aws-sdk');
 var Q = require('q');
 var gutil = require('gulp-util');
 
+var PLUGIN_NAME = 'gulp-cloudfront';
+
 module.exports = function(options) {
 
-    var cloudfront = new AWS.CloudFront({
-        accessKeyId: options.key,
-        secretAccessKey: options.secret
-    });
+    var credentials = getCredentials(options);
+    if (credentials instanceof Error) {
+      throw credentials;
+    }
+
+    var cloudfront = new AWS.CloudFront(credentials);
 
     var updateDefaultRootObject = function (defaultRootObject) {
 
@@ -71,3 +75,54 @@ module.exports = function(options) {
     };
 
 };
+
+
+
+/**
+ * Hunt for appropriate creds
+ * @param {Options} opts
+ *
+ * @return {Credentials} obj
+ * @api private
+ */
+
+function getCredentials(opts) {
+  if (opts && opts instanceof AWS.SharedIniFileCredentials && !opts.accessKeyId) {
+    return new gutil.PluginError({
+      plugin: PLUGIN_NAME,
+      message: 'Bad or invalid credentials'
+    });
+  }
+
+  // compatibility
+  if (opts && opts.key && (opts.secret || opts.token)) {
+    return {
+      accessKeyId: opts.key,
+      secretAccessKey: opts.secret,
+      sessionToken: opts.token
+    };
+  }
+
+  // When passing to S3, the non-enumerated secretKey won't get copied
+  if (opts && opts instanceof AWS.SharedIniFileCredentials) {
+    return {
+      accessKeyId: opts.accessKeyId,
+      secretAccessKey: opts.secretAccessKey,
+      sessionToken: opts.sessionToken
+    };
+  }
+
+  if (opts && opts.accessKeyId && (opts.secretAccessKey || opts.sessionToken)) {
+    return {
+      accessKeyId: opts.accessKeyId,
+      secretAccessKey: opts.secretAccessKey,
+      sessionToken: opts.sessionToken
+    };
+  }
+
+  if (AWS.config.credentials) {
+    return getCredentials(AWS.config.credentials);
+  }
+
+  return getCredentials(new AWS.SharedIniFileCredentials(opts));
+}
